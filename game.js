@@ -55,9 +55,10 @@ async function handleLogin(event) {
   if (!/^[6-9]\d{9}$/.test(mobile)) { setFieldError('mobile-number', 'Enter a valid 10-digit Indian mobile number.'); $('#mobile-number').focus(); return; }
   setFieldError('mobile-number', ''); $('#resend-status').textContent = 'Requesting a code…';
   try {
-    const result = await api('/api/auth/request-otp', { method: 'POST', body: JSON.stringify({ mobile }) });
+    const channel = $('input[name="channel"]:checked')?.value || 'whatsapp';
+    const result = await api('/api/auth/request-otp', { method: 'POST', body: JSON.stringify({ mobile, channel }) });
     state.requestedMobile = mobile; state.offlineOtp = false; setAuthNotice(result.devMode && result.devOtp ? `Development server OTP: ${result.devOtp}` : '', Boolean(result.devMode && result.devOtp));
-    $('#otp-code').value = ''; $('#resend-status').textContent = result.smsSent ? 'Code sent by the connected SMS provider.' : 'Development mode: no SMS was sent.'; showAuthStep('otp');
+    $('#otp-code').value = ''; $('#resend-status').textContent = result.message || (result.smsSent ? 'Code sent to your phone.' : 'Development mode: no SMS was sent.'); showAuthStep('otp');
   } catch (error) {
     if (!isUnavailable(error)) { setFieldError('mobile-number', error.message); $('#resend-status').textContent = ''; return; }
     markOffline(); state.requestedMobile = mobile; state.offlineOtp = true; setAuthNotice('', false); $('#otp-code').value = ''; $('#resend-status').textContent = 'Offline fallback active. No SMS was sent.'; showAuthStep('otp');

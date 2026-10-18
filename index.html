@@ -37,6 +37,19 @@
               <div class="mobile-input"><span aria-hidden="true">+91</span><input id="mobile-number" name="mobile" type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[6-9][0-9]{9}" placeholder="98765 43210" required aria-describedby="mobile-help mobile-error" /></div>
               <p id="mobile-help" class="field-help">Enter 10 digits starting with 6, 7, 8, or 9.</p>
               <p id="mobile-error" class="field-error" role="alert" hidden></p>
+              <div class="channel-options">
+                <span class="channel-label">Send code via:</span>
+                <div class="channel-pills">
+                  <label class="channel-pill">
+                    <input type="radio" name="channel" value="whatsapp" checked />
+                    <span>💬 WhatsApp</span>
+                  </label>
+                  <label class="channel-pill">
+                    <input type="radio" name="channel" value="sms" />
+                    <span>📱 SMS</span>
+                  </label>
+                </div>
+              </div>
               <button class="button button-primary auth-submit" type="submit">Continue <span aria-hidden="true">→</span></button>
             </form>
              <p class="auth-legal">Your authenticated session stays in a secure HttpOnly cookie; cart and location remain on this device.</p>

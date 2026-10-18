@@ -351,24 +351,38 @@ async function handleApi(request, res, url) {
     if (rate.count >= OTP_MAX_REQUESTS) { json(res, 429, { error: 'Too many code requests. Try again later' }, headers); return; }
     // Check if Twilio Verify v2 is configured
     if (twilioVerifyConfigured()) {
+      let channel = String(body.channel || process.env.TWILIO_VERIFY_CHANNEL || 'whatsapp').toLowerCase();
+      if (!['whatsapp', 'sms'].includes(channel)) channel = 'whatsapp';
+      let sentChannel = channel;
       try {
-        const channel = (process.env.TWILIO_VERIFY_CHANNEL || 'whatsapp').toLowerCase();
         await startTwilioVerify(mobile, channel);
-        const secure = NODE_ENV === 'production' || request.headers['x-forwarded-proto'] === 'https';
-        const verifyCookie = `anku_twilio_pending=${mobile}.${now + OTP_TTL_MS}; HttpOnly; SameSite=Lax; Path=/; Max-Age=300${secure ? '; Secure' : ''}`;
-        json(res, 200, {
-          ok: true,
-          smsSent: true,
-          devMode: false,
-          channel,
-          message: `Verification code sent to your ${channel === 'whatsapp' ? 'WhatsApp' : 'mobile phone'}.`
-        }, { ...headers, 'Set-Cookie': verifyCookie });
-        return;
       } catch (err) {
-        console.error('[anku-find] Twilio Verify failed:', err.message);
-        json(res, 502, { error: `Twilio Verify error: ${err.message}` }, headers);
-        return;
+        if (channel === 'whatsapp') {
+          console.warn('[anku-find] WhatsApp Verify delivery failed, falling back to SMS:', err.message);
+          try {
+            await startTwilioVerify(mobile, 'sms');
+            sentChannel = 'sms';
+          } catch (smsErr) {
+            console.error('[anku-find] Both WhatsApp and SMS Verify failed:', smsErr.message);
+            json(res, 502, { error: `Twilio Verify error: ${err.message}` }, headers);
+            return;
+          }
+        } else {
+          console.error('[anku-find] Twilio Verify failed:', err.message);
+          json(res, 502, { error: `Twilio Verify error: ${err.message}` }, headers);
+          return;
+        }
       }
+      const secure = NODE_ENV === 'production' || request.headers['x-forwarded-proto'] === 'https';
+      const verifyCookie = `anku_twilio_pending=${mobile}.${now + OTP_TTL_MS}; HttpOnly; SameSite=Lax; Path=/; Max-Age=300${secure ? '; Secure' : ''}`;
+      json(res, 200, {
+        ok: true,
+        smsSent: true,
+        devMode: false,
+        channel: sentChannel,
+        message: `Verification code sent to your ${sentChannel === 'whatsapp' ? 'WhatsApp' : 'mobile phone'}.`
+      }, { ...headers, 'Set-Cookie': verifyCookie });
+      return;
     }
 
     const otp = String(crypto.randomInt(100000, 1000000));
