@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f8f4ec" />
+    <meta name="description" content="Anku Find helps people discover local products and flexible work in any location." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <title>Anku Find — Local finds, flexible work</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section id="auth-screen" class="auth-screen" aria-labelledby="auth-title">
+      <div class="auth-orbit auth-orbit-one" aria-hidden="true"></div>
+      <div class="auth-orbit auth-orbit-two" aria-hidden="true"></div>
+      <div class="auth-layout">
+        <div class="auth-brand-lockup">
+          <span class="brand-symbol" aria-hidden="true">✦</span>
+          <span class="brand-name">Anku <strong>Find</strong></span>
+        </div>
+        <div class="auth-copy">
+          <p class="overline">Your neighbourhood, one place</p>
+          <h1 id="auth-title">Good things are <em>closer</em>.</h1>
+          <p>Discover local products and flexible work through the connected Anku Find local server.</p>
+          <div class="auth-trust"><span aria-hidden="true">◈</span><span>Session security is handled by an HttpOnly cookie</span></div>
+        </div>
+        <div class="auth-card">
+          <div id="login-step" class="auth-step">
+            <div class="auth-step-number" aria-hidden="true">01</div>
+            <p class="overline">Welcome to Anku Find</p>
+            <h2>Start with your mobile</h2>
+             <p class="auth-intro">Use your 10-digit Indian mobile number to request a verification code.</p>
+            <form id="login-form" novalidate>
+              <label class="auth-label" for="mobile-number">Indian mobile number <span aria-hidden="true">*</span></label>
+              <div class="mobile-input"><span aria-hidden="true">+91</span><input id="mobile-number" name="mobile" type="tel" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[6-9][0-9]{9}" placeholder="98765 43210" required aria-describedby="mobile-help mobile-error" /></div>
+              <p id="mobile-help" class="field-help">Enter 10 digits starting with 6, 7, 8, or 9.</p>
+              <p id="mobile-error" class="field-error" role="alert" hidden></p>
+              <button class="button button-primary auth-submit" type="submit">Continue <span aria-hidden="true">→</span></button>
+            </form>
+             <p class="auth-legal">Your authenticated session stays in a secure HttpOnly cookie; cart and location remain on this device.</p>
+          </div>
+          <div id="otp-step" class="auth-step" hidden>
+            <div class="auth-step-number" aria-hidden="true">02</div>
+            <button class="back-link" type="button" data-auth-back>← Change number</button>
+             <p class="overline">Connected verification</p>
+            <h2>Enter your six-digit code</h2>
+             <p class="auth-intro">Enter the code sent by the configured SMS provider or reported by the local development server.</p>
+             <p id="dev-otp-notice" class="form-notice" hidden role="status"></p>
+            <form id="otp-form" novalidate>
+               <label class="auth-label" for="otp-code">Six-digit verification code <span aria-hidden="true">*</span></label>
+               <input id="otp-code" class="otp-input" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" required aria-describedby="otp-help otp-error" />
+               <p id="otp-help" class="field-help">Codes expire after a short time and are rate limited.</p>
+              <p id="otp-error" class="field-error" role="alert" hidden></p>
+              <button class="button button-primary auth-submit" type="submit">Verify and enter <span aria-hidden="true">↗</span></button>
+            </form>
+             <div class="auth-secondary-actions"><button class="text-button" type="button" data-auth-resend>Resend code</button><span id="resend-status" aria-live="polite"></span></div>
+             <p class="auth-legal">Connected API/local server · a real SMS provider is required for production OTP delivery.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="app-shell" hidden>
+    <header class="site-header">
+      <a class="brand" href="#home" data-view-link="home" aria-label="Anku Find home">
+        <span class="brand-symbol" aria-hidden="true">✦</span>
+        <span>Anku <strong>Find</strong></span>
+      </a>
+      <nav class="main-nav" aria-label="Primary navigation">
+        <button class="nav-link active" type="button" data-view-link="home">Home</button>
+        <button class="nav-link" type="button" data-view-link="shop">Shop local</button>
+        <button class="nav-link" type="button" data-view-link="jobs">Find work</button>
+      </nav>
+      <div class="header-actions">
+        <label class="location-control"><span aria-hidden="true">⌖</span><span class="sr-only">Choose your location</span><select id="global-location"><option value="Any">Any location</option><option value="Jaipur">Jaipur</option><option value="Delhi">Delhi</option><option value="Mumbai">Mumbai</option><option value="Bengaluru">Bengaluru</option></select></label>
+        <button class="text-button assistant-trigger" type="button" data-open-assistant><span aria-hidden="true">✺</span> Ask AI</button>
+        <button class="cart-button" type="button" data-open-cart aria-label="Open cart">
+          <span aria-hidden="true">Bag</span><b id="cart-count">0</b>
+        </button>
+        <button class="logout-button" type="button" data-logout>Log out</button>
+      </div>
+      <button class="menu-button" type="button" aria-label="Open navigation" aria-expanded="false" data-toggle-menu>☰</button>
+    </header>
+
+    <main>
+      <section id="home-view" class="view active-view" aria-labelledby="hero-title">
+        <div class="page-shell">
+           <div class="demo-banner"><span class="pulse-dot" aria-hidden="true"></span> Connected API · Local server data for people, products, and work</div>
+           <aside class="data-status" aria-label="Data status and provenance"><strong>Data status</strong><span id="connection-status" class="status-chip status-verified">CONNECTED API</span><span>Local JSON storage and server sessions</span><span class="status-note">Cart and location save on this device. Listings and job interests use the connected local API.</span></aside>
+            <div class="accuracy-notice" role="note"><strong>Connected local server</strong><span>Products, jobs, listings, and interests are handled by this app's API. A real SMS provider is required for production OTP delivery.</span></div>
+           <div class="hero-grid">
+            <div class="hero-copy">
+              <p class="overline">Built for people, by the people who make places move</p>
+              <h1 id="hero-title">Good things are <em>closer</em> than you think.</h1>
+              <p class="hero-lede">Discover local makers, everyday essentials, and flexible work — all in one friendly place, wherever you are.</p>
+              <div class="hero-actions">
+                <button class="button button-primary" type="button" data-view-link="shop">Explore local shops <span aria-hidden="true">↗</span></button>
+                <button class="button button-secondary" type="button" data-view-link="jobs">Browse part-time work</button>
+              </div>
+              <div class="hero-note"><span class="avatar-stack" aria-hidden="true"><i>R</i><i>A</i><i>M</i></span><span><strong>Made for your neighbourhood</strong><br />Choose a city, then make it yours.</span></div>
+            </div>
+            <div class="hero-art" aria-label="Anku Find highlights">
+              <div class="sun-disc" aria-hidden="true"></div>
+              <div class="arch arch-back" aria-hidden="true"></div>
+              <div class="arch arch-front" aria-hidden="true"><span>✦</span></div>
+              <div class="hero-float-card float-top"><span class="float-icon mint">⌁</span><div><small>Popular today</small><strong>Local finds</strong></div><b>↗</b></div>
+              <div class="hero-float-card float-bottom"><span class="float-icon saffron">◷</span><div><small>New nearby</small><strong>Flexible shifts</strong></div><b>↗</b></div>
+              <p class="art-caption">Your place · your pace</p>
+            </div>
+          </div>
+
+          <div class="ai-explainer" id="ai-explainer">
+            <div class="ai-mark" aria-hidden="true">✺</div>
+            <div class="ai-explainer-copy"><p class="overline">Meet your local commerce + jobs assistant</p><h2>What does Generative AI mean?</h2><p>It’s software that can <strong>create a useful answer from your words</strong>. Ask for a gift, an everyday service, or a flexible shift — Anku AI helps people and employees get started with local options in any location.</p></div>
+             <button class="button button-dark" type="button" data-open-assistant>Try Anku AI <span aria-hidden="true">✺</span></button>
+          </div>
+
+          <div class="section-heading"><div><p class="overline">A little of everything</p><h2>Start exploring</h2></div><button class="arrow-link" type="button" data-view-link="shop">See all shops <span aria-hidden="true">→</span></button></div>
+          <div class="category-grid" aria-label="Shop categories">
+            <button class="category-card category-blue" type="button" data-view-link="shop" data-category="Crafts"><span class="category-emoji" aria-hidden="true">🏺</span><strong>Local crafts</strong><small>Pottery, paper & handmade</small><b>Browse finds →</b></button>
+            <button class="category-card category-mango" type="button" data-view-link="shop" data-category="Food"><span class="category-emoji" aria-hidden="true">🍱</span><strong>Made to eat</strong><small>Tiffin, treats & coffee</small><b>Explore food →</b></button>
+            <button class="category-card category-pink" type="button" data-view-link="shop" data-category="Home"><span class="category-emoji" aria-hidden="true">🪴</span><strong>Homegrown</strong><small>Plants, decor & more</small><b>See home picks →</b></button>
+            <button class="category-card category-lilac" type="button" data-view-link="jobs"><span class="category-emoji" aria-hidden="true">🤝</span><strong>Earn locally</strong><small>Shifts that fit your life</small><b>See open roles →</b></button>
+          </div>
+
+          <div class="home-bottom-grid">
+             <article class="story-card"><div class="story-art" aria-hidden="true"><span>☼</span><i></i><b>ANKU</b></div><div class="story-content"><p class="overline">Local spotlight</p><h3>Small shops, big character.</h3><p>Great finds and useful work can be one lane off the main road. We’re making them easier to discover anywhere.</p><button class="arrow-link" type="button" data-view-link="shop">Meet local sellers <span aria-hidden="true">→</span></button></div></article>
+             <article class="jobs-promo"><div><p class="overline">Need a hand?</p><h3>Turn your free hours into something useful.</h3><p>Browse flexible, neighbourhood-first work. Every listing is clearly marked by its data source while we build the network.</p></div><div class="promo-actions"><button class="button button-primary" type="button" data-view-link="jobs">Find a shift <span aria-hidden="true">↗</span></button><button class="promo-link" type="button" data-open-job-form>Post a job →</button></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="shop-view" class="view" aria-labelledby="shop-title" hidden>
+        <div class="page-shell directory-page">
+           <div class="directory-head"><div><p class="overline">Local marketplace · Any location</p><h1 id="shop-title">Shop local, <em>your way.</em></h1><p>Find products from neighbourhood sellers. Sample prices and stock are illustrative.</p></div><button class="button button-dark" type="button" data-open-assistant>Ask for a recommendation <span aria-hidden="true">✺</span></button></div>
+          <div class="directory-toolbar"><label class="search-field"><span aria-hidden="true">⌕</span><span class="sr-only">Search products</span><input id="product-search" type="search" placeholder="Search pottery, tiffin, plants…" autocomplete="off" /></label><label class="select-field"><span class="sr-only">Filter products by category</span><select id="product-category"><option value="All">All categories</option><option value="Food">Food & drink</option><option value="Crafts">Crafts</option><option value="Home">Home & living</option><option value="Fashion">Fashion</option></select></label><button class="filter-button" type="button" data-sort-products aria-pressed="false">Sort: featured <span aria-hidden="true">↕</span></button></div>
+            <div class="results-meta"><p id="product-results-count">Showing products</p><span class="demo-tag">CONNECTED API · JSON STORAGE</span></div>
+          <div id="product-grid" class="product-grid" aria-live="polite"></div>
+           <div id="product-empty" class="empty-state" hidden><span aria-hidden="true">⌕</span><h2>No local finds yet</h2><p>Try a different search, category, or location. We’re adding more sellers soon.</p><button class="button button-secondary" type="button" data-clear-products>Clear filters</button></div>
+        </div>
+      </section>
+
+      <section id="jobs-view" class="view" aria-labelledby="jobs-title" hidden>
+        <div class="page-shell directory-page">
+           <div class="directory-head jobs-head"><div><p class="overline">Flexible work · Connected API</p><h1 id="jobs-title">Find work that <em>fits.</em></h1><p>Explore local roles for employees, freelancers, and people looking for their next opportunity.</p></div><button class="button button-primary" type="button" data-open-job-form>Post a job <span aria-hidden="true">＋</span></button></div>
+           <div class="jobs-callout"><span class="ai-mark small" aria-hidden="true">✺</span><p><strong>New to the city or the search?</strong> Anku AI can help you think through your skills and find a starting point.</p><button class="text-button" type="button" data-open-assistant>Ask Anku AI →</button></div>
+          <div class="directory-toolbar"><label class="search-field"><span aria-hidden="true">⌕</span><span class="sr-only">Search jobs</span><input id="job-search" type="search" placeholder="Search delivery, tutoring, sales…" autocomplete="off" /></label><label class="select-field"><span class="sr-only">Filter jobs by type</span><select id="job-type"><option value="All">All job types</option><option value="Retail">Retail & sales</option><option value="Food">Food & hospitality</option><option value="Delivery">Delivery</option><option value="Teaching">Teaching</option><option value="Creative">Creative</option></select></label><label class="select-field"><span class="sr-only">Filter jobs by area</span><select id="job-area"><option value="All">All areas</option><option value="C-Scheme">C-Scheme</option><option value="Vaishali Nagar">Vaishali Nagar</option><option value="Malviya Nagar">Malviya Nagar</option><option value="Sanganer">Sanganer</option><option value="Mansarovar">Mansarovar</option></select></label></div>
+            <div class="results-meta"><p id="job-results-count">Showing roles</p><span class="demo-tag">CONNECTED API · JSON STORAGE</span></div>
+          <div id="job-list" class="job-list" aria-live="polite"></div>
+          <div id="job-empty" class="empty-state" hidden><span aria-hidden="true">⌕</span><h2>No roles match that search</h2><p>Try another area or clear the filters to see all sample roles.</p><button class="button button-secondary" type="button" data-clear-jobs>Clear filters</button></div>
+        </div>
+      </section>
+    </main>
+
+     <footer class="site-footer"><div class="page-shell footer-inner"><span class="brand footer-brand"><span class="brand-symbol" aria-hidden="true">✦</span> Anku <strong>Find</strong></span><span>Designed for every neighbourhood · <span class="demo-tag">Connected local API</span></span><span>Production OTP requires a real SMS provider.</span></div></footer>
+
+    <div id="assistant-modal" class="modal-backdrop" hidden><section class="modal assistant-modal" role="dialog" aria-modal="true" aria-labelledby="assistant-title"><button class="modal-close" type="button" data-close-modal aria-label="Close assistant">×</button><div class="modal-kicker"><span class="ai-mark small" aria-hidden="true">✺</span> Anku AI · Demo</div><h2 id="assistant-title">What are you looking for?</h2><p class="modal-intro">Tell me in your own words. I’ll suggest a place to start for people and employees, using the sample directory in your selected location.</p><div id="assistant-messages" class="assistant-messages" aria-live="polite"><div class="assistant-bubble">Hi! Try “a gift under ₹1,000” or “weekend work in any location”.</div></div><form id="assistant-form" class="assistant-form"><label class="sr-only" for="assistant-input">Ask Anku AI</label><input id="assistant-input" type="text" placeholder="Ask for a local idea…" autocomplete="off" /><button class="button button-dark" type="submit" aria-label="Send question">→</button></form><div class="quick-prompts"><button type="button" data-prompt="Find a gift under ₹1,000">Gift under ₹1,000</button><button type="button" data-prompt="Find weekend work">Weekend work</button></div></section></div>
+
+     <div id="job-modal" class="modal-backdrop" hidden><section class="modal form-modal" role="dialog" aria-modal="true" aria-labelledby="job-modal-title"><button class="modal-close" type="button" data-close-modal aria-label="Close post a job form">×</button><div class="modal-kicker">For local businesses · Your browser</div><h2 id="job-modal-title">Post a part-time job</h2><p class="modal-intro">Add a role to this browser session. Nothing is sent to a server, and the listing is saved locally for you.</p><div class="form-notice"><strong>Before you post</strong><span>Required details are saved on this device. Check that your contact, location, and pay information is accurate.</span></div><form id="job-form" class="job-form"><label for="job-title">Role title <span aria-hidden="true">*</span><input id="job-title" name="title" required placeholder="e.g. Evening counter helper" /></label><label for="job-company">Business or person name <span aria-hidden="true">*</span><input id="job-company" name="company" required placeholder="e.g. Your neighbourhood shop" /></label><div class="form-two-col"><label for="job-location-input">Location / area <span aria-hidden="true">*</span><input id="job-location-input" name="area" required placeholder="e.g. Central market" /></label><label for="job-type-form">Job type <span aria-hidden="true">*</span><select id="job-type-form" name="type" required><option value="" disabled selected>Choose type</option><option>Retail</option><option>Food</option><option>Delivery</option><option>Teaching</option><option>Creative</option></select></label></div><label for="job-description">Short description <span aria-hidden="true">*</span><textarea id="job-description" name="description" required rows="3" placeholder="What will this person help with?"></textarea></label><div class="form-two-col"><label for="job-pay">Pay / rate <span aria-hidden="true">*</span><input id="job-pay" name="pay" required placeholder="e.g. ₹500 / day" /></label><label for="job-contact">Contact mobile <span aria-hidden="true">*</span><input id="job-contact" name="contact" type="tel" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" required placeholder="10-digit number" /></label></div><label for="job-photo">Photo (optional)<input id="job-photo" name="photo" type="file" accept="image/*" capture="environment" aria-describedby="photo-help" /></label><p id="photo-help" class="field-help">A small image helps people recognise the opportunity. It is compressed and saved only in this browser.</p><div id="job-photo-preview" class="photo-preview" hidden><img alt="Selected job photo preview" /><button type="button" class="text-button" data-remove-photo>Remove photo</button></div><button class="button button-primary" type="submit">Save my listing <span aria-hidden="true">↗</span></button><p class="form-note">Saved on this device · Select <strong id="job-form-location">Any location</strong> or a city to manage where it appears.</p></form></section></div>
+
+    <div id="cart-modal" class="modal-backdrop" hidden><section class="modal cart-modal" role="dialog" aria-modal="true" aria-labelledby="cart-title"><button class="modal-close" type="button" data-close-modal aria-label="Close bag">×</button><div class="modal-kicker">Your local finds · Saved on this device</div><h2 id="cart-title">Your bag</h2><div id="cart-items" class="cart-items"></div><div id="cart-empty" class="cart-empty"><span aria-hidden="true">🛍️</span><p>Your bag is waiting for a local find.</p><button class="button button-secondary" type="button" data-view-link="shop">Browse shops</button></div><div id="cart-total" class="cart-total" hidden><span>Demo total</span><strong>₹<span>0</span></strong></div><p class="form-note">Saved in localStorage · Demo checkout · No payment or delivery is processed.</p></section></div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </div>
+    <script src="game.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+      }
+    </script>
+  </body>
+</html>

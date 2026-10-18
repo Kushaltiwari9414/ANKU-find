@@ -1,0 +1,11 @@
+{
+  "name": "Anku Find",
+  "short_name": "Anku Find",
+  "description": "A people-first local marketplace and flexible work directory with device-only demo sign-in.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fbfaf7",
+  "theme_color": "#0c8078",
+  "orientation": "portrait-primary",
+  "categories": ["shopping", "business", "lifestyle"]
+}
