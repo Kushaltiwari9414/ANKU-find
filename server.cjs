@@ -155,14 +155,85 @@ function bodyJson(request) {
   });
 }
 
-function smsConfigured() { return Boolean(process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN); }
+function smsConfigured() {
+  return Boolean(
+    process.env.FAST2SMS_API_KEY ||
+    process.env.TWOFACTOR_API_KEY ||
+    (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) ||
+    (process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN)
+  );
+}
 
 async function sendSms(mobile, otp) {
   if (!smsConfigured()) return { sent: false, development: true };
-  const headers = { 'content-type': 'application/json', [process.env.SMS_PROVIDER_AUTH_HEADER || 'authorization']: process.env.SMS_PROVIDER_TOKEN };
-  const response = await fetch(process.env.SMS_PROVIDER_URL, { method: 'POST', headers, body: JSON.stringify({ mobile, message: `Your Anku Find verification code is ${otp}`, otp }) });
-  if (!response.ok) throw new Error(`SMS provider returned HTTP ${response.status}`);
-  return { sent: true, development: false };
+
+  // 1. Fast2SMS (India)
+  if (process.env.FAST2SMS_API_KEY) {
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+      method: 'POST',
+      headers: {
+        authorization: process.env.FAST2SMS_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        route: 'otp',
+        variables_values: otp,
+        numbers: mobile
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.return === false) {
+      throw new Error(`Fast2SMS error: ${data.message || res.statusText || res.status}`);
+    }
+    return { sent: true, development: false };
+  }
+
+  // 2. 2Factor.in (India)
+  if (process.env.TWOFACTOR_API_KEY) {
+    const url = `https://2factor.in/API/V1/${encodeURIComponent(process.env.TWOFACTOR_API_KEY)}/SMS/${mobile}/${otp}/AUTOGEN`;
+    const res = await fetch(url);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.Status !== 'Success') {
+      throw new Error(`2Factor error: ${data.Details || res.statusText || res.status}`);
+    }
+    return { sent: true, development: false };
+  }
+
+  // 3. Twilio (Global / International)
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+    const sid = process.env.TWILIO_ACCOUNT_SID;
+    const token = process.env.TWILIO_AUTH_TOKEN;
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`;
+    const auth = Buffer.from(`${sid}:${token}`).toString('base64');
+    const params = new URLSearchParams({
+      To: `+91${mobile}`,
+      From: process.env.TWILIO_PHONE_NUMBER,
+      Body: `Your Anku Find verification code is ${otp}`
+    });
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(`Twilio error: ${errData.message || res.statusText || res.status}`);
+    }
+    return { sent: true, development: false };
+  }
+
+  // 4. Custom generic provider
+  if (process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN) {
+    const headers = { 'content-type': 'application/json', [process.env.SMS_PROVIDER_AUTH_HEADER || 'authorization']: process.env.SMS_PROVIDER_TOKEN };
+    const response = await fetch(process.env.SMS_PROVIDER_URL, { method: 'POST', headers, body: JSON.stringify({ mobile, message: `Your Anku Find verification code is ${otp}`, otp }) });
+    if (!response.ok) throw new Error(`SMS provider returned HTTP ${response.status}`);
+    return { sent: true, development: false };
+  }
+
+  return { sent: false, development: true };
 }
 
 function publicJob(job) {
