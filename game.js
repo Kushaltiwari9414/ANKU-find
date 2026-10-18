@@ -66,7 +66,7 @@ async function handleLogin(event) {
 
 async function handleOtp(event) {
   event.preventDefault(); const mobile = state.requestedMobile || normalizedMobile($('#mobile-number').value); const otp = normalizedMobile($('#otp-code').value); $('#otp-code').value = otp;
-  if (!/^\d{6}$/.test(otp)) { setFieldError('otp-code', 'Enter the six-digit code.'); return; }
+  if (!/^\d{4,8}$/.test(otp)) { setFieldError('otp-code', 'Enter your verification code.'); return; }
   try { await api('/api/auth/verify-otp', { method: 'POST', body: JSON.stringify({ mobile, otp }) }); setFieldError('otp-code', ''); revealApp(); showToast('Verified with the connected local server'); }
   catch (error) {
     if (isUnavailable(error) && state.offlineOtp && otp === '123456') { setFieldError('otp-code', ''); revealApp(); showToast('Offline fallback session active'); return; }

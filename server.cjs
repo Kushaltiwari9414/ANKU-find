@@ -155,8 +155,74 @@ function bodyJson(request) {
   });
 }
 
+function getTwilioAuth() {
+  if (process.env.TWILIO_API_KEY && process.env.TWILIO_API_SECRET) {
+    return Buffer.from(`${process.env.TWILIO_API_KEY}:${process.env.TWILIO_API_SECRET}`).toString('base64');
+  }
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    return Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+  }
+  return null;
+}
+
+function twilioVerifyConfigured() {
+  return Boolean(process.env.TWILIO_VERIFY_SERVICE_SID && getTwilioAuth());
+}
+
+async function startTwilioVerify(mobile, channel = 'whatsapp') {
+  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  const auth = getTwilioAuth();
+  const to = mobile.startsWith('+') ? mobile : `+91${mobile}`;
+
+  const params = new URLSearchParams();
+  params.append('To', to);
+  params.append('Channel', channel);
+
+  const res = await fetch(`https://verify.twilio.com/v2/Services/${serviceSid}/Verifications`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || `Twilio Verify error (${res.status})`);
+  }
+  return data;
+}
+
+async function checkTwilioVerify(mobile, code) {
+  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  const auth = getTwilioAuth();
+  const to = mobile.startsWith('+') ? mobile : `+91${mobile}`;
+
+  const params = new URLSearchParams();
+  params.append('To', to);
+  params.append('Code', code);
+
+  const res = await fetch(`https://verify.twilio.com/v2/Services/${serviceSid}/VerificationCheck`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.warn('[anku-find] Twilio verification check returned error:', data.message || res.status);
+    return false;
+  }
+  return data.status === 'approved' || data.valid === true;
+}
+
 function smsConfigured() {
   return Boolean(
+    twilioVerifyConfigured() ||
     process.env.FAST2SMS_API_KEY ||
     process.env.TWOFACTOR_API_KEY ||
     (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) ||
@@ -283,6 +349,28 @@ async function handleApi(request, res, url) {
     if (now - rate.windowStart > OTP_WINDOW_MS) { rate.count = 0; rate.windowStart = now; }
     if (now - rate.lastIssued < OTP_MIN_INTERVAL_MS) { json(res, 429, { error: 'Please wait before requesting another code' }, headers); return; }
     if (rate.count >= OTP_MAX_REQUESTS) { json(res, 429, { error: 'Too many code requests. Try again later' }, headers); return; }
+    // Check if Twilio Verify v2 is configured
+    if (twilioVerifyConfigured()) {
+      try {
+        const channel = (process.env.TWILIO_VERIFY_CHANNEL || 'whatsapp').toLowerCase();
+        await startTwilioVerify(mobile, channel);
+        const secure = NODE_ENV === 'production' || request.headers['x-forwarded-proto'] === 'https';
+        const verifyCookie = `anku_twilio_pending=${mobile}.${now + OTP_TTL_MS}; HttpOnly; SameSite=Lax; Path=/; Max-Age=300${secure ? '; Secure' : ''}`;
+        json(res, 200, {
+          ok: true,
+          smsSent: true,
+          devMode: false,
+          channel,
+          message: `Verification code sent to your ${channel === 'whatsapp' ? 'WhatsApp' : 'mobile phone'}.`
+        }, { ...headers, 'Set-Cookie': verifyCookie });
+        return;
+      } catch (err) {
+        console.error('[anku-find] Twilio Verify failed:', err.message);
+        json(res, 502, { error: `Twilio Verify error: ${err.message}` }, headers);
+        return;
+      }
+    }
+
     const otp = String(crypto.randomInt(100000, 1000000));
     const expiresAt = now + OTP_TTL_MS;
     pendingOtps.set(mobile, { hash: hashOtp(mobile, otp), expiresAt, attempts: 0 });
@@ -304,7 +392,18 @@ async function handleApi(request, res, url) {
   if (request.method === 'POST' && pathname === '/api/auth/verify-otp') {
     const body = await bodyJson(request); const mobile = normalizedMobile(body.mobile); const otp = String(body.otp || '').replace(/\D/g, ''); const pending = pendingOtps.get(mobile);
     let verified = false;
-    if (pending && pending.expiresAt > Date.now()) {
+
+    // Check with Twilio Verify service if configured
+    if (twilioVerifyConfigured()) {
+      try {
+        const approved = await checkTwilioVerify(mobile, otp);
+        if (approved) verified = true;
+      } catch (err) {
+        console.error('[anku-find] Twilio verify check error:', err.message);
+      }
+    }
+
+    if (!verified && pending && pending.expiresAt > Date.now()) {
       pending.attempts += 1;
       if (sameHash(pending.hash, hashOtp(mobile, otp))) {
         verified = true;
@@ -328,14 +427,15 @@ async function handleApi(request, res, url) {
     if (!verified && !smsConfigured() && otp === '123456') {
       verified = true;
     }
-    if (!validMobile(mobile) || !/^\d{6}$/.test(otp) || !verified) { json(res, 401, { error: 'That verification code is invalid or expired' }, headers); return; }
+    if (!validMobile(mobile) || !/^\d{4,8}$/.test(otp) || !verified) { json(res, 401, { error: 'That verification code is invalid or expired' }, headers); return; }
     const expiresAt = Date.now() + SESSION_TTL_MS;
     const sessionToken = `${mobile}.${expiresAt}.${signSession(mobile, expiresAt)}`;
     sessions.set(sessionToken, { mobile, expiresAt });
     const secure = NODE_ENV === 'production' || request.headers['x-forwarded-proto'] === 'https';
     const cookie = `anku_session=${sessionToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}${secure ? '; Secure' : ''}`;
     const clearOtpCookie = `anku_pending_otp=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure ? '; Secure' : ''}`;
-    json(res, 200, { ok: true, authenticated: true, mobile }, { ...headers, 'Set-Cookie': [cookie, clearOtpCookie] });
+    const clearTwilioCookie = `anku_twilio_pending=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure ? '; Secure' : ''}`;
+    json(res, 200, { ok: true, authenticated: true, mobile }, { ...headers, 'Set-Cookie': [cookie, clearOtpCookie, clearTwilioCookie] });
     return;
   }
   if (request.method === 'POST' && pathname === '/api/auth/logout') {

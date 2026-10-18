@@ -45,12 +45,12 @@
             <div class="auth-step-number" aria-hidden="true">02</div>
             <button class="back-link" type="button" data-auth-back>← Change number</button>
              <p class="overline">Connected verification</p>
-            <h2>Enter your six-digit code</h2>
-             <p class="auth-intro">Enter the code sent by the configured SMS provider or reported by the local development server.</p>
+            <h2>Enter verification code</h2>
+             <p class="auth-intro">Enter the code sent to your phone or reported by the local server.</p>
              <p id="dev-otp-notice" class="form-notice" hidden role="status"></p>
             <form id="otp-form" novalidate>
-               <label class="auth-label" for="otp-code">Six-digit verification code <span aria-hidden="true">*</span></label>
-               <input id="otp-code" class="otp-input" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" required aria-describedby="otp-help otp-error" />
+               <label class="auth-label" for="otp-code">Verification code <span aria-hidden="true">*</span></label>
+               <input id="otp-code" class="otp-input" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="••••••" required aria-describedby="otp-help otp-error" />
                <p id="otp-help" class="field-help">Codes expire after a short time and are rate limited.</p>
               <p id="otp-error" class="field-error" role="alert" hidden></p>
               <button class="button button-primary auth-submit" type="submit">Verify and enter <span aria-hidden="true">↗</span></button>
